@@ -1,4 +1,4 @@
-#### LAKE ERIE ice ###########
+#### Great Lakes Ice ###########
 
 #load libraries 
 library(tidyverse)# for cleaning
@@ -47,6 +47,57 @@ year_max<-raw_dd %>%
   cat("Processed and saved:", output_file, "\n")
 }
 
+#### select years to use for historical mean and cv maps #### 
+#file with the data
+input_folder <- "ice_data/"
+# List all CSV files in the folder
+files <- list.files(path = input_folder, pattern = "\\.csv$", full.names = TRUE)
+
+# Loop over each file and read the CSV, then assign each file to a variable in the environment
+for (file in files) {
+  # Read the current CSV file
+  data <- read.csv(file)
+  
+  # Create a variable name based on the filename (remove the path and extension)
+  var_name <- gsub(".csv$", "", basename(file))  # Remove .csv extension from filename
+  
+  # Assign the data to a variable in the global environment
+  assign(var_name, data)
+  
+} 
+
+
+summary_Erie_DD_estimates<-summary_Erie_DD_estimates %>% 
+  dplyr::mutate(lake = "erie")
+summary_Huron_DD_estimates<-summary_Huron_DD_estimates %>% 
+  dplyr::mutate(lake = "huron")
+summary_Michigan_DD_estimates<-summary_Michigan_DD_estimates %>% 
+  dplyr::mutate(lake = "michigan")
+summary_Ontario_DD_estimates<-summary_Ontario_DD_estimates %>% 
+  dplyr::mutate(lake = "ontario")
+summary_Superior_DD_estimates<-summary_Superior_DD_estimates %>% 
+  dplyr::mutate(lake = "superior")
+
+dd_estimates<-rbind(summary_Erie_DD_estimates, summary_Huron_DD_estimates, summary_Michigan_DD_estimates, summary_Ontario_DD_estimates, summary_Superior_DD_estimates) %>% 
+  rename(year=stat_year)
+
+lake_mean<-dd_estimates %>%
+  filter(year >= 1898 & year <= 1960) %>%
+  group_by(lake) %>% 
+  summarise(hist_mean = mean(max_CFDD),
+            SD = sd(max_CFDD)) %>% 
+  mutate(pctSD= 0.2*SD,
+    high = hist_mean + (0.2*SD), #30% of the SD
+         low = hist_mean - (0.2*SD) ) 
+
+
+ice_selection<-left_join(dd_estimates, lake_mean, by = "lake") %>%
+  filter(year >= 1979 & year <= 2014) %>% #select years with spatial data
+  mutate(include = ifelse(max_CFDD < high & max_CFDD > low, "YES", "NO")) # if the max cfdd falls within the SD range
+
+
+
+
 #### plots #### 
 
 #* plots for the conceptual diagram ####
@@ -70,14 +121,14 @@ for (file in files) {
 
 # Create a color variable to specify which points are red and which are blue
 summary_Erie_DD_estimates<-dplyr::filter(summary_Erie_DD_estimates, stat_year<2015)
-summary_Erie_DD_estimates$color <- ifelse(summary_Erie_DD_estimates$stat_year == 1988 | summary_Erie_DD_estimates$stat_year == 2000 | summary_Erie_DD_estimates$stat_year == 2001 | summary_Erie_DD_estimates$stat_year == 2004 | summary_Erie_DD_estimates$stat_year == 2005 | summary_Erie_DD_estimates$stat_year == 2007 | summary_Erie_DD_estimates$stat_year == 2010, "red", "darkblue")
+summary_Erie_DD_estimates$color <- ifelse(summary_Erie_DD_estimates$stat_year == 1988 | summary_Erie_DD_estimates$stat_year == 2004 | summary_Erie_DD_estimates$stat_year == 2005 | summary_Erie_DD_estimates$stat_year == 2010, "red", "darkblue")
 
 
 spatial_years_fig<-ggplot(summary_Erie_DD_estimates, aes(x = stat_year, y = max_CFDD)) +
   geom_line(color = "darkblue") +  # Add the line
   geom_point(aes(color = color), size = 3) +  # Points with specific colors
   scale_color_identity() +  # Use the actual colors (red/blue) without scale
-  geom_hline(yintercept = c(241, 325), linetype = "dashed", color = "black") +  # Add horizontal lines 
+  geom_hline(yintercept = c(255, 311), linetype = "dashed", color = "black") +  # Add horizontal lines 
   geom_hline(yintercept = c(283), linetype = "solid", color = "black") + 
   labs(x = "Year", y = "Max CFDD") +
   theme_minimal() +   
