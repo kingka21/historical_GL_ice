@@ -1,5 +1,7 @@
 # historical_GL_ice
 
+https://doi.org/10.5281/zenodo.17456419
+
 This repository contains the code that supports the manuscript: **Katelyn B.S. King, Ayumi Fujisaki-Manome, Cory Brant, Danielle Cohn, Inigo Peng, Karen Alofs.
 Reconstructing Great Lakes air temperature and ice dynamics data back to 1897.**  
 
